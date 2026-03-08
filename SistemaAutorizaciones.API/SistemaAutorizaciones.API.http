@@ -1,0 +1,6 @@
+@SistemaAutorizaciones.API_HostAddress = http://localhost:5213
+
+GET {{SistemaAutorizaciones.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
