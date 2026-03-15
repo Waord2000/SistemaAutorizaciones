@@ -3,21 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using SistemaAutorizaciones.API.Data;
 using SistemaAutorizaciones.API.Helpers;
 using SistemaAutorizaciones.API.Models;
-using System.Text.Json.Serialization;
-
-public class SolicitudLogin
-{
-    [JsonPropertyName("correo")]
-    public string Correo { get; set; } = string.Empty;
-
-    [JsonPropertyName("contrasena")]
-    public string Contrasena { get; set; } = string.Empty;
-
-}
 
 namespace SistemaAutorizaciones.API.Controllers
 {
-
     [ApiController]
     [Route("api/[controller]")]
     public class AuthController : ControllerBase
@@ -125,13 +113,6 @@ namespace SistemaAutorizaciones.API.Controllers
                 id = nuevoAdministrador.Id
             });
         }
-        // GET api/auth/hash/{password}
-        [HttpGet("hash/{password}")]
-        public IActionResult GenerarHash(string password)
-        {
-            var hash = BCrypt.Net.BCrypt.HashPassword(password);
-            return Ok(new { hash });
-        }
     }
 
     // ── Modelos de solicitud ──────────────────────────────────
@@ -148,5 +129,4 @@ namespace SistemaAutorizaciones.API.Controllers
         public string Correo { get; set; } = string.Empty;
         public string Contrasena { get; set; } = string.Empty;
     }
-
 }

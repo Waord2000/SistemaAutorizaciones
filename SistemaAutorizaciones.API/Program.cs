@@ -35,8 +35,7 @@ constructor.Services.AddAuthentication(opciones =>
         ValidIssuer = configuracionJwt["Issuer"],
         ValidAudience = configuracionJwt["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(
-                                       Encoding.UTF8.GetBytes(llaveSecreta)),
-        RoleClaimType = "http://schemas.microsoft.com/ws/2008/06/identity/claims/role"
+                                       Encoding.UTF8.GetBytes(llaveSecreta))
     };
 });
 
