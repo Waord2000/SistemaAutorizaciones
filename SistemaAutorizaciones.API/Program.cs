@@ -116,7 +116,7 @@ if (aplicacion.Environment.IsDevelopment())
     {
         configuracion.SwaggerEndpoint("/swagger/v1/swagger.json",
                                       "Sistema Autorizaciones v1");
-        configuracion.RoutePrefix = string.Empty;
+        configuracion.RoutePrefix = "swagger";
     });
 }
 
