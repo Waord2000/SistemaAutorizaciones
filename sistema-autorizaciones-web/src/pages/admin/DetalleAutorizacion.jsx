@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { autorizacionesServicio } from '../../services/api'
+import GeneradorPDF from '../../components/GeneradorPDF'
 
 export default function DetalleAdmin() {
   const { id }  = useParams()
@@ -506,6 +507,11 @@ export default function DetalleAdmin() {
           <h2 style={estilos.seccionTitulo}>
             ⚙️ Gestión de la Autorización
           </h2>
+          {/* Generador PDF — solo admin */}
+          <GeneradorPDF
+            autorizacion={autorizacion}
+            onGenerado={() => setExito('PDF generado correctamente.')}
+          />
 
           {/* Resumen de métricas */}
           <div style={estilos.metricasGrid}>
