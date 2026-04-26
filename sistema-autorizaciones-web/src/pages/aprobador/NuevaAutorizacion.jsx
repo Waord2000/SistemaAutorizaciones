@@ -11,8 +11,8 @@ export default function NuevaAutorizacion() {
   const [tecnicos, setTecnicos] = useState([])
 
   // ── Estado del formulario ───────────────────────────────────
-  const [cargando,  setCargando]  = useState(false)
-  const [error,     setError]     = useState('')
+  const [cargando,      setCargando]      = useState(false)
+  const [error,         setError]         = useState('')
   const [seccionActual, setSeccionActual] = useState(1)
 
   // ── Sección 1: Información General ─────────────────────────
@@ -24,26 +24,26 @@ export default function NuevaAutorizacion() {
     maquinaId:  '',
   })
 
-  // ── Sección 2: Tipos de tarea ───────────────────────────────
+  // ── Sección 2: Tipo de tarea (solo uno) ────────────────────
   const tiposDisponibles = [
-    { valor: 'Mecanica',       etiqueta: 'Mecánica' },
-    { valor: 'Electricidad',   etiqueta: 'Electricidad' },
-    { valor: 'Soldadura',      etiqueta: 'Soldadura' },
-    { valor: 'Lubricacion',    etiqueta: 'Lubricación' },
-    { valor: 'EquiposCriticos',etiqueta: 'Equipos Críticos' },
-    { valor: 'Otros',          etiqueta: 'Otros' },
+    { valor: 'Mecanica',        etiqueta: 'Mecánica' },
+    { valor: 'Electricidad',    etiqueta: 'Electricidad' },
+    { valor: 'Soldadura',       etiqueta: 'Soldadura' },
+    { valor: 'Lubricacion',     etiqueta: 'Lubricación' },
+    { valor: 'EquiposCriticos', etiqueta: 'Equipos Críticos' },
+    { valor: 'Otros',           etiqueta: 'Otros' },
   ]
-  const [tiposSeleccionados, setTiposSeleccionados] = useState([])
-  const [descripcionTarea,   setDescripcionTarea]   = useState('')
+  const [tipoSeleccionado,  setTipoSeleccionado]  = useState('')
+  const [descripcionTarea,  setDescripcionTarea]  = useState('')
 
   // ── Sección 3: Personal ─────────────────────────────────────
   const [personal, setPersonal] = useState({
-    tecnicoId:    '',
-    nivelTecnico: '',
+    tecnicoId:     '',
+    nivelTecnico:  '',
     requiereApoyo: false,
   })
-  const [personalApoyo,    setPersonalApoyo]    = useState([])
-  const [nombreApoyo,      setNombreApoyo]      = useState('')
+  const [personalApoyo,  setPersonalApoyo]  = useState([])
+  const [tecnicoApoyoId, setTecnicoApoyoId] = useState('')
 
   // ── Sección 4: EPP ──────────────────────────────────────────
   const eppsDisponibles = [
@@ -73,8 +73,8 @@ export default function NuevaAutorizacion() {
   const [evaluadorPuesto, setEvaluadorPuesto] = useState('')
 
   // ── Sección 6: Autorización ─────────────────────────────────
-  const [observaciones,  setObservaciones]  = useState('')
-  const [firmaAceptada,  setFirmaAceptada]  = useState(false)
+  const [observaciones, setObservaciones] = useState('')
+  const [firmaAceptada, setFirmaAceptada] = useState(false)
 
   // ── Cargar datos iniciales ──────────────────────────────────
   useEffect(() => {
@@ -104,14 +104,6 @@ export default function NuevaAutorizacion() {
   }
 
   // ── Manejadores ─────────────────────────────────────────────
-  const toggleTipo = (valor) => {
-    setTiposSeleccionados(prev =>
-      prev.includes(valor)
-        ? prev.filter(t => t !== valor)
-        : [...prev, valor]
-    )
-  }
-
   const toggleEpp = (valor) => {
     setEppsSeleccionados(prev =>
       prev.includes(valor)
@@ -121,9 +113,21 @@ export default function NuevaAutorizacion() {
   }
 
   const agregarPersonalApoyo = () => {
-    if (!nombreApoyo.trim()) return
-    setPersonalApoyo(prev => [...prev, nombreApoyo.trim()])
-    setNombreApoyo('')
+    if (!tecnicoApoyoId) return
+
+    const tecnico = tecnicos.find(
+      t => t.id === parseInt(tecnicoApoyoId)
+    )
+    if (!tecnico) return
+
+    const nombreCompleto = `${tecnico.nombre} ${tecnico.apellido}`
+
+    if (personalApoyo.includes(nombreCompleto)) return
+
+    if (parseInt(tecnicoApoyoId) === parseInt(personal.tecnicoId)) return
+
+    setPersonalApoyo(prev => [...prev, nombreCompleto])
+    setTecnicoApoyoId('')
   }
 
   const eliminarPersonalApoyo = (indice) => {
@@ -157,7 +161,7 @@ export default function NuevaAutorizacion() {
                infoGeneral.horaFin &&
                infoGeneral.areaId
       case 2:
-        return tiposSeleccionados.length > 0 && descripcionTarea.trim()
+        return tipoSeleccionado !== '' && descripcionTarea.trim()
       case 3:
         return personal.tecnicoId && personal.nivelTecnico
       case 4:
@@ -213,16 +217,15 @@ export default function NuevaAutorizacion() {
         evaluadorPuesto:  evaluadorPuesto,
         eppOtros:         eppOtros || null,
         observaciones:    observaciones || null,
-        tiposTarea:       tiposSeleccionados,
+        tiposTarea:       [tipoSeleccionado],
         epps:             eppsSeleccionados,
         personalApoyo:    personalApoyo,
         analisisRiesgos:  riesgos,
       }
 
       const respuesta = await autorizacionesServicio.crear(datos)
-      const { id } = respuesta.data
+      const { id }    = respuesta.data
 
-      // Firmar automáticamente como aprobador
       await autorizacionesServicio.firmarAprobador(id)
 
       navegar('/aprobador')
@@ -265,8 +268,8 @@ export default function NuevaAutorizacion() {
       {/* Barra de progreso */}
       <div style={estilos.progreso}>
         {secciones.map((nombre, indice) => {
-          const numero = indice + 1
-          const activa    = numero === seccionActual
+          const numero     = indice + 1
+          const activa     = numero === seccionActual
           const completada = numero < seccionActual
           return (
             <div key={numero} style={estilos.pasoContenedor}>
@@ -281,8 +284,8 @@ export default function NuevaAutorizacion() {
               </div>
               <span style={{
                 ...estilos.pasoNombre,
-                color: activa ? '#1B3A5C' : '#9CA3AF',
-                fontWeight: activa ? '600' : '400',
+                color:      activa ? '#1B3A5C' : '#9CA3AF',
+                fontWeight: activa ? '600'     : '400',
               }}>
                 {nombre}
               </span>
@@ -333,7 +336,7 @@ export default function NuevaAutorizacion() {
                   onChange={e => {
                     setInfoGeneral({
                       ...infoGeneral,
-                      areaId: e.target.value,
+                      areaId:    e.target.value,
                       maquinaId: ''
                     })
                     cargarMaquinas(e.target.value)
@@ -402,14 +405,25 @@ export default function NuevaAutorizacion() {
             <p style={estilos.seccionDesc}>
               Selecciona el tipo de tarea a realizar:
             </p>
-            <div style={estilos.checkGrid}>
+            <div style={estilos.radioGrid}>
               {tiposDisponibles.map(tipo => (
-                <label key={tipo.valor} style={estilos.checkItem}>
+                <label
+                  key={tipo.valor}
+                  style={{
+                    ...estilos.radioItem,
+                    backgroundColor: tipoSeleccionado === tipo.valor
+                      ? '#EBF8FF' : '#F9FAFB',
+                    border: tipoSeleccionado === tipo.valor
+                      ? '2px solid #2B6CB0' : '1px solid #E2E8F0',
+                  }}
+                >
                   <input
-                    type="checkbox"
-                    checked={tiposSeleccionados.includes(tipo.valor)}
-                    onChange={() => toggleTipo(tipo.valor)}
-                    style={estilos.checkbox}
+                    type="radio"
+                    name="tipoTarea"
+                    value={tipo.valor}
+                    checked={tipoSeleccionado === tipo.valor}
+                    onChange={() => setTipoSeleccionado(tipo.valor)}
+                    style={{ cursor: 'pointer' }}
                   />
                   {tipo.etiqueta}
                 </label>
@@ -462,7 +476,7 @@ export default function NuevaAutorizacion() {
 
               <div style={estilos.campo}>
                 <label style={estilos.etiqueta}>
-                  Nivel técnico{' '}
+                  Nivel técnico requerido{' '}
                   <span style={estilos.requerido}>*</span>
                 </label>
                 <select
@@ -486,17 +500,18 @@ export default function NuevaAutorizacion() {
                 ¿Requiere personal de apoyo?
               </label>
               <div style={estilos.radioGroup}>
-                <label style={estilos.radioItem}>
+                <label style={estilos.radioGroupItem}>
                   <input
                     type="radio"
                     checked={!personal.requiereApoyo}
-                    onChange={() => setPersonal({
-                      ...personal, requiereApoyo: false
-                    })}
+                    onChange={() => {
+                      setPersonal({ ...personal, requiereApoyo: false })
+                      setPersonalApoyo([])
+                    }}
                   />
                   No
                 </label>
-                <label style={estilos.radioItem}>
+                <label style={estilos.radioGroupItem}>
                   <input
                     type="radio"
                     checked={personal.requiereApoyo}
@@ -512,24 +527,43 @@ export default function NuevaAutorizacion() {
             {personal.requiereApoyo && (
               <div style={{ marginTop: '16px' }}>
                 <label style={estilos.etiqueta}>
-                  Nombre(s) del personal de apoyo
+                  Seleccionar técnico de apoyo
                 </label>
                 <div style={estilos.inputConBoton}>
-                  <input
-                    value={nombreApoyo}
-                    onChange={e => setNombreApoyo(e.target.value)}
-                    placeholder="Nombre completo"
+                  <select
+                    value={tecnicoApoyoId}
+                    onChange={e => setTecnicoApoyoId(e.target.value)}
                     style={{ ...estilos.input, flex: 1 }}
-                    onKeyDown={e => e.key === 'Enter' && agregarPersonalApoyo()}
-                  />
+                  >
+                    <option value="">Seleccionar técnico...</option>
+                    {tecnicos
+                      .filter(t =>
+                        t.id !== parseInt(personal.tecnicoId)
+                      )
+                      .map(t => (
+                        <option key={t.id} value={t.id}>
+                          {t.nombre} {t.apellido}
+                        </option>
+                      ))
+                    }
+                  </select>
                   <button
                     type="button"
                     onClick={agregarPersonalApoyo}
-                    style={estilos.btnAgregar}
+                    disabled={!tecnicoApoyoId}
+                    style={{
+                      ...estilos.btnAgregar,
+                      backgroundColor: tecnicoApoyoId
+                        ? '#1B3A5C' : '#9CA3AF',
+                      cursor: tecnicoApoyoId
+                        ? 'pointer' : 'not-allowed',
+                    }}
                   >
                     + Agregar
                   </button>
                 </div>
+
+                {/* Lista de técnicos de apoyo */}
                 <div style={{ marginTop: '8px' }}>
                   {personalApoyo.map((nombre, i) => (
                     <div key={i} style={estilos.tagPersona}>
@@ -696,9 +730,7 @@ export default function NuevaAutorizacion() {
         {/* ── Sección 6: Autorización ── */}
         {seccionActual === 6 && (
           <div>
-            <h2 style={estilos.seccionTitulo}>
-              6. Autorización
-            </h2>
+            <h2 style={estilos.seccionTitulo}>6. Autorización</h2>
 
             <div style={estilos.campo}>
               <label style={estilos.etiqueta}>
@@ -713,7 +745,7 @@ export default function NuevaAutorizacion() {
               />
             </div>
 
-            {/* Resumen del formulario */}
+            {/* Resumen */}
             <div style={estilos.resumen}>
               <h3 style={estilos.resumenTitulo}>
                 Resumen de la autorización
@@ -725,7 +757,9 @@ export default function NuevaAutorizacion() {
                 </div>
                 <div style={estilos.resumenItem}>
                   <span style={estilos.resumenLabel}>Horario:</span>
-                  <span>{infoGeneral.horaInicio} - {infoGeneral.horaFin}</span>
+                  <span>
+                    {infoGeneral.horaInicio} - {infoGeneral.horaFin}
+                  </span>
                 </div>
                 <div style={estilos.resumenItem}>
                   <span style={estilos.resumenLabel}>Área:</span>
@@ -734,15 +768,22 @@ export default function NuevaAutorizacion() {
                   </span>
                 </div>
                 <div style={estilos.resumenItem}>
-                  <span style={estilos.resumenLabel}>Tipos de tarea:</span>
-                  <span>{tiposSeleccionados.join(', ')}</span>
+                  <span style={estilos.resumenLabel}>Tipo de tarea:</span>
+                  <span>
+                    {tiposDisponibles.find(
+                      t => t.valor === tipoSeleccionado
+                    )?.etiqueta}
+                  </span>
                 </div>
                 <div style={estilos.resumenItem}>
                   <span style={estilos.resumenLabel}>Técnico:</span>
                   <span>
-                    {tecnicos.find(t => t.id == personal.tecnicoId)
-                      ? `${tecnicos.find(t => t.id == personal.tecnicoId).nombre} ${tecnicos.find(t => t.id == personal.tecnicoId).apellido}`
-                      : ''}
+                    {(() => {
+                      const t = tecnicos.find(
+                        t => t.id == personal.tecnicoId
+                      )
+                      return t ? `${t.nombre} ${t.apellido}` : ''
+                    })()}
                   </span>
                 </div>
                 <div style={estilos.resumenItem}>
@@ -750,7 +791,9 @@ export default function NuevaAutorizacion() {
                   <span>{eppsSeleccionados.length} elementos</span>
                 </div>
                 <div style={estilos.resumenItem}>
-                  <span style={estilos.resumenLabel}>Riesgos identificados:</span>
+                  <span style={estilos.resumenLabel}>
+                    Riesgos identificados:
+                  </span>
                   <span>{riesgos.length}</span>
                 </div>
               </div>
@@ -758,9 +801,7 @@ export default function NuevaAutorizacion() {
 
             {/* Firma digital */}
             <div style={estilos.firmaContenedor}>
-              <h3 style={estilos.firmaTitulo}>
-                ✍️ Firma del Aprobador
-              </h3>
+              <h3 style={estilos.firmaTitulo}>✍️ Firma del Aprobador</h3>
               <p style={estilos.firmaDescripcion}>
                 Al marcar esta casilla, confirmo que he revisado toda la
                 información del formulario FO-MA-19, que los datos son
@@ -810,7 +851,9 @@ export default function NuevaAutorizacion() {
                 : estilos.btnEnviar
               }
             >
-              {cargando ? 'Enviando...' : '✅ Firmar y Enviar al Técnico'}
+              {cargando
+                ? 'Enviando...'
+                : '✅ Firmar y Enviar al Técnico'}
             </button>
           )}
         </div>
@@ -840,13 +883,18 @@ const estilos = {
   etiqueta:             { fontSize: '13px', fontWeight: '600', color: '#374151' },
   requerido:            { color: '#DC2626' },
   input:                { padding: '9px 12px', borderRadius: '7px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' },
+  // Radio grid para tipo de tarea
+  radioGrid:            { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' },
+  radioItem:            { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', transition: 'all 0.2s' },
+  // Radio group para apoyo
+  radioGroup:           { display: 'flex', gap: '24px', marginTop: '8px' },
+  radioGroupItem:       { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' },
+  // Checkboxes EPP
   checkGrid:            { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' },
   checkItem:            { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', backgroundColor: '#F9FAFB' },
   checkbox:             { width: '16px', height: '16px', cursor: 'pointer' },
-  radioGroup:           { display: 'flex', gap: '24px', marginTop: '8px' },
-  radioItem:            { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' },
   inputConBoton:        { display: 'flex', gap: '8px', marginTop: '6px' },
-  btnAgregar:           { backgroundColor: '#1B3A5C', color: '#fff', border: 'none', borderRadius: '7px', padding: '9px 16px', fontSize: '14px', cursor: 'pointer', whiteSpace: 'nowrap' },
+  btnAgregar:           { color: '#fff', border: 'none', borderRadius: '7px', padding: '9px 16px', fontSize: '14px', whiteSpace: 'nowrap' },
   tagPersona:           { display: 'inline-flex', alignItems: 'center', gap: '8px', backgroundColor: '#EBF8FF', color: '#2B6CB0', borderRadius: '20px', padding: '4px 12px', fontSize: '13px', margin: '4px 4px 0 0' },
   btnEliminarTag:       { background: 'none', border: 'none', cursor: 'pointer', color: '#2B6CB0', fontSize: '12px', padding: 0 },
   riesgoFila:           { display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '16px', padding: '16px', backgroundColor: '#F9FAFB', borderRadius: '8px', border: '1px solid #E2E8F0' },
@@ -868,3 +916,4 @@ const estilos = {
   btnEnviar:            { backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px 28px', fontSize: '15px', fontWeight: '700', cursor: 'pointer' },
   btnEnviarDesactivado: { backgroundColor: '#9CA3AF', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px 28px', fontSize: '15px', fontWeight: '700', cursor: 'not-allowed' },
 }
+
