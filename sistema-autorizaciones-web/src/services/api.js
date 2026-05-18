@@ -38,11 +38,13 @@ export const authServicio = {
 
 // ── Servicios de Usuarios ─────────────────────────────────────
 export const usuariosServicio = {
-  obtenerTodos:      ()         => api.get('/Usuarios'),
-  obtenerTecnicos:   ()         => api.get('/Usuarios/tecnicos'),
-  obtenerAprobadores:()         => api.get('/Usuarios/aprobadores'),
-  crear:             (datos)    => api.post('/Usuarios', datos),
-  cambiarEstado:     (id, activo) => api.put(`/Usuarios/${id}/estado`, activo),
+  obtenerTodos:       ()           => api.get('/Usuarios'),
+  obtenerTecnicos:    ()           => api.get('/Usuarios/tecnicos'),
+  obtenerAprobadores: ()           => api.get('/Usuarios/aprobadores'),
+  crear:              (datos)      => api.post('/Usuarios', datos),
+  editar:             (id, datos)  => api.put(`/Usuarios/${id}`, datos),
+  cambiarEstado:      (id, activo) => api.put(`/Usuarios/${id}/estado`, { activo }),
+  eliminar:           (id)         => api.delete(`/Usuarios/${id}`),
 }
 
 // ── Servicios de Áreas ────────────────────────────────────────
@@ -51,6 +53,7 @@ export const areasServicio = {
   obtenerMaquinas: (id)       => api.get(`/Areas/${id}/maquinas`),
   crearArea:       (datos)    => api.post('/Areas', datos),
   crearMaquina:    (id, datos) => api.post(`/Areas/${id}/maquinas`, datos),
+  editarMaquina:   (id, datos) => api.put(`/Areas/maquinas/${id}`, datos),
 }
 
 // ── Servicios de Autorizaciones ───────────────────────────────

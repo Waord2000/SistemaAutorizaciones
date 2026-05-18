@@ -6,9 +6,10 @@ export default function NuevaAutorizacion() {
   const navegar = useNavigate()
 
   // ── Datos para los selectores ───────────────────────────────
-  const [areas,    setAreas]    = useState([])
-  const [maquinas, setMaquinas] = useState([])
-  const [tecnicos, setTecnicos] = useState([])
+  const [areas,       setAreas]       = useState([])
+  const [maquinas,    setMaquinas]    = useState([])
+  const [tecnicos,    setTecnicos]    = useState([])
+  const [aprobadores, setAprobadores] = useState([])
 
   // ── Estado del formulario ───────────────────────────────────
   const [cargando,      setCargando]      = useState(false)
@@ -33,8 +34,8 @@ export default function NuevaAutorizacion() {
     { valor: 'EquiposCriticos', etiqueta: 'Equipos Críticos' },
     { valor: 'Otros',           etiqueta: 'Otros' },
   ]
-  const [tipoSeleccionado,  setTipoSeleccionado]  = useState('')
-  const [descripcionTarea,  setDescripcionTarea]  = useState('')
+  const [tipoSeleccionado, setTipoSeleccionado] = useState('')
+  const [descripcionTarea, setDescripcionTarea] = useState('')
 
   // ── Sección 3: Personal ─────────────────────────────────────
   const [personal, setPersonal] = useState({
@@ -69,6 +70,7 @@ export default function NuevaAutorizacion() {
   const [riesgos, setRiesgos] = useState([
     { riesgoIdentificado: '', medidasControl: '', nivelRiesgo: 'Medio' }
   ])
+  const [evaluadorId,     setEvaluadorId]     = useState('')
   const [evaluadorNombre, setEvaluadorNombre] = useState('')
   const [evaluadorPuesto, setEvaluadorPuesto] = useState('')
 
@@ -80,12 +82,14 @@ export default function NuevaAutorizacion() {
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const [respAreas, respTecnicos] = await Promise.all([
+        const [respAreas, respTecnicos, respAprobadores] = await Promise.all([
           areasServicio.obtenerTodas(),
           usuariosServicio.obtenerTecnicos(),
+          usuariosServicio.obtenerAprobadores(),
         ])
         setAreas(respAreas.data)
         setTecnicos(respTecnicos.data)
+        setAprobadores(respAprobadores.data)
       } catch (err) {
         setError('Error al cargar datos.')
       }
@@ -114,18 +118,13 @@ export default function NuevaAutorizacion() {
 
   const agregarPersonalApoyo = () => {
     if (!tecnicoApoyoId) return
-
     const tecnico = tecnicos.find(
       t => t.id === parseInt(tecnicoApoyoId)
     )
     if (!tecnico) return
-
     const nombreCompleto = `${tecnico.nombre} ${tecnico.apellido}`
-
     if (personalApoyo.includes(nombreCompleto)) return
-
     if (parseInt(tecnicoApoyoId) === parseInt(personal.tecnicoId)) return
-
     setPersonalApoyo(prev => [...prev, nombreCompleto])
     setTecnicoApoyoId('')
   }
@@ -169,7 +168,7 @@ export default function NuevaAutorizacion() {
       case 5:
         return riesgos.every(r =>
           r.riesgoIdentificado.trim() && r.medidasControl.trim()
-        ) && evaluadorNombre.trim() && evaluadorPuesto.trim()
+        ) && evaluadorId !== ''
       case 6:
         return firmaAceptada
       default:
@@ -225,9 +224,7 @@ export default function NuevaAutorizacion() {
 
       const respuesta = await autorizacionesServicio.crear(datos)
       const { id }    = respuesta.data
-
       await autorizacionesServicio.firmarAprobador(id)
-
       navegar('/aprobador')
 
     } catch (err) {
@@ -241,12 +238,8 @@ export default function NuevaAutorizacion() {
 
   // ── Indicador de progreso ───────────────────────────────────
   const secciones = [
-    'Info General',
-    'Tipo de Tarea',
-    'Personal',
-    'EPP',
-    'Riesgos',
-    'Autorización',
+    'Info General', 'Tipo de Tarea', 'Personal',
+    'EPP', 'Riesgos', 'Autorización',
   ]
 
   return (
@@ -300,18 +293,15 @@ export default function NuevaAutorizacion() {
         })}
       </div>
 
-      {/* Contenido de la sección */}
+      {/* Contenido */}
       <div style={estilos.tarjeta}>
 
-        {/* Error */}
         {error && <div style={estilos.error}>⚠️ {error}</div>}
 
-        {/* ── Sección 1: Información General ── */}
+        {/* ── Sección 1 ── */}
         {seccionActual === 1 && (
           <div>
-            <h2 style={estilos.seccionTitulo}>
-              1. Información General
-            </h2>
+            <h2 style={estilos.seccionTitulo}>1. Información General</h2>
             <div style={estilos.grid2}>
               <div style={estilos.campo}>
                 <label style={estilos.etiqueta}>
@@ -336,8 +326,7 @@ export default function NuevaAutorizacion() {
                   onChange={e => {
                     setInfoGeneral({
                       ...infoGeneral,
-                      areaId:    e.target.value,
-                      maquinaId: ''
+                      areaId: e.target.value, maquinaId: ''
                     })
                     cargarMaquinas(e.target.value)
                   }}
@@ -375,9 +364,7 @@ export default function NuevaAutorizacion() {
               </div>
 
               <div style={estilos.campo}>
-                <label style={estilos.etiqueta}>
-                  Máquina / Equipo
-                </label>
+                <label style={estilos.etiqueta}>Máquina / Equipo</label>
                 <select
                   value={infoGeneral.maquinaId}
                   onChange={e => setInfoGeneral({
@@ -396,7 +383,7 @@ export default function NuevaAutorizacion() {
           </div>
         )}
 
-        {/* ── Sección 2: Tipo de Tarea ── */}
+        {/* ── Sección 2 ── */}
         {seccionActual === 2 && (
           <div>
             <h2 style={estilos.seccionTitulo}>
@@ -429,10 +416,9 @@ export default function NuevaAutorizacion() {
                 </label>
               ))}
             </div>
-
             <div style={{ ...estilos.campo, marginTop: '20px' }}>
               <label style={estilos.etiqueta}>
-                Descripción detallada de la tarea{' '}
+                Descripción detallada{' '}
                 <span style={estilos.requerido}>*</span>
               </label>
               <textarea
@@ -446,7 +432,7 @@ export default function NuevaAutorizacion() {
           </div>
         )}
 
-        {/* ── Sección 3: Personal ── */}
+        {/* ── Sección 3 ── */}
         {seccionActual === 3 && (
           <div>
             <h2 style={estilos.seccionTitulo}>
@@ -494,7 +480,6 @@ export default function NuevaAutorizacion() {
               </div>
             </div>
 
-            {/* Personal de apoyo */}
             <div style={{ marginTop: '20px' }}>
               <label style={estilos.etiqueta}>
                 ¿Requiere personal de apoyo?
@@ -562,8 +547,6 @@ export default function NuevaAutorizacion() {
                     + Agregar
                   </button>
                 </div>
-
-                {/* Lista de técnicos de apoyo */}
                 <div style={{ marginTop: '8px' }}>
                   {personalApoyo.map((nombre, i) => (
                     <div key={i} style={estilos.tagPersona}>
@@ -582,7 +565,7 @@ export default function NuevaAutorizacion() {
           </div>
         )}
 
-        {/* ── Sección 4: EPP ── */}
+        {/* ── Sección 4 ── */}
         {seccionActual === 4 && (
           <div>
             <h2 style={estilos.seccionTitulo}>
@@ -604,7 +587,6 @@ export default function NuevaAutorizacion() {
                 </label>
               ))}
             </div>
-
             {eppsSeleccionados.includes('Otro') && (
               <div style={{ ...estilos.campo, marginTop: '16px' }}>
                 <label style={estilos.etiqueta}>
@@ -621,7 +603,7 @@ export default function NuevaAutorizacion() {
           </div>
         )}
 
-        {/* ── Sección 5: Análisis de Riesgos ── */}
+        {/* ── Sección 5 ── */}
         {seccionActual === 5 && (
           <div>
             <h2 style={estilos.seccionTitulo}>
@@ -698,36 +680,53 @@ export default function NuevaAutorizacion() {
               + Agregar otro riesgo
             </button>
 
+            {/* Selector de evaluador */}
             <div style={{ ...estilos.grid2, marginTop: '24px' }}>
               <div style={estilos.campo}>
                 <label style={estilos.etiqueta}>
-                  Nombre de quien evalúa{' '}
+                  Quien evalúa los riesgos{' '}
                   <span style={estilos.requerido}>*</span>
                 </label>
-                <input
-                  value={evaluadorNombre}
-                  onChange={e => setEvaluadorNombre(e.target.value)}
-                  placeholder="Nombre completo"
+                <select
+                  value={evaluadorId}
+                  onChange={e => {
+                    const aprobador = aprobadores.find(
+                      a => a.id === parseInt(e.target.value)
+                    )
+                    setEvaluadorId(e.target.value)
+                    setEvaluadorNombre(
+                      aprobador
+                        ? `${aprobador.nombre} ${aprobador.apellido}`
+                        : ''
+                    )
+                    setEvaluadorPuesto(aprobador?.cargo || '')
+                  }}
                   style={estilos.input}
-                />
+                >
+                  <option value="">Seleccionar aprobador...</option>
+                  {aprobadores.map(a => (
+                    <option key={a.id} value={a.id}>
+                      {a.nombre} {a.apellido}
+                    </option>
+                  ))}
+                </select>
               </div>
-              <div style={estilos.campo}>
-                <label style={estilos.etiqueta}>
-                  Puesto de quien evalúa{' '}
-                  <span style={estilos.requerido}>*</span>
-                </label>
-                <input
-                  value={evaluadorPuesto}
-                  onChange={e => setEvaluadorPuesto(e.target.value)}
-                  placeholder="Puesto o cargo"
-                  style={estilos.input}
-                />
-              </div>
+
+              {evaluadorPuesto && (
+                <div style={estilos.campo}>
+                  <label style={estilos.etiqueta}>
+                    Puesto (cargado automáticamente)
+                  </label>
+                  <div style={estilos.campoLectura}>
+                    {evaluadorPuesto}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* ── Sección 6: Autorización ── */}
+        {/* ── Sección 6 ── */}
         {seccionActual === 6 && (
           <div>
             <h2 style={estilos.seccionTitulo}>6. Autorización</h2>
@@ -787,6 +786,10 @@ export default function NuevaAutorizacion() {
                   </span>
                 </div>
                 <div style={estilos.resumenItem}>
+                  <span style={estilos.resumenLabel}>Evaluador:</span>
+                  <span>{evaluadorNombre}</span>
+                </div>
+                <div style={estilos.resumenItem}>
                   <span style={estilos.resumenLabel}>EPP requerido:</span>
                   <span>{eppsSeleccionados.length} elementos</span>
                 </div>
@@ -812,7 +815,9 @@ export default function NuevaAutorizacion() {
                   type="checkbox"
                   checked={firmaAceptada}
                   onChange={e => setFirmaAceptada(e.target.checked)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+                  style={{
+                    width: '18px', height: '18px', cursor: 'pointer'
+                  }}
                 />
                 <span>
                   <strong>Acepto y firmo</strong> la presente autorización
@@ -824,7 +829,7 @@ export default function NuevaAutorizacion() {
           </div>
         )}
 
-        {/* Navegación entre secciones */}
+        {/* Navegación */}
         <div style={estilos.navegacion}>
           {seccionActual > 1 && (
             <button
@@ -883,13 +888,11 @@ const estilos = {
   etiqueta:             { fontSize: '13px', fontWeight: '600', color: '#374151' },
   requerido:            { color: '#DC2626' },
   input:                { padding: '9px 12px', borderRadius: '7px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none', width: '100%', boxSizing: 'border-box' },
-  // Radio grid para tipo de tarea
+  campoLectura:         { padding: '9px 12px', borderRadius: '7px', border: '1px solid #E2E8F0', fontSize: '14px', backgroundColor: '#F9FAFB', color: '#374151' },
   radioGrid:            { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '16px' },
   radioItem:            { display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '500', transition: 'all 0.2s' },
-  // Radio group para apoyo
   radioGroup:           { display: 'flex', gap: '24px', marginTop: '8px' },
   radioGroupItem:       { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer' },
-  // Checkboxes EPP
   checkGrid:            { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' },
   checkItem:            { display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: 'pointer', padding: '10px', borderRadius: '8px', border: '1px solid #E2E8F0', backgroundColor: '#F9FAFB' },
   checkbox:             { width: '16px', height: '16px', cursor: 'pointer' },
@@ -916,4 +919,3 @@ const estilos = {
   btnEnviar:            { backgroundColor: '#059669', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px 28px', fontSize: '15px', fontWeight: '700', cursor: 'pointer' },
   btnEnviarDesactivado: { backgroundColor: '#9CA3AF', color: '#fff', border: 'none', borderRadius: '8px', padding: '12px 28px', fontSize: '15px', fontWeight: '700', cursor: 'not-allowed' },
 }
-

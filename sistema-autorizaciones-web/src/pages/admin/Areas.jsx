@@ -2,17 +2,23 @@ import { useState, useEffect } from 'react'
 import { areasServicio } from '../../services/api'
 
 export default function Areas() {
-  const [areas,         setAreas]         = useState([])
-  const [maquinas,      setMaquinas]      = useState([])
+  const [areas,            setAreas]            = useState([])
+  const [maquinas,         setMaquinas]         = useState([])
   const [areaSeleccionada, setAreaSeleccionada] = useState(null)
-  const [cargando,      setCargando]      = useState(true)
+  const [cargando,         setCargando]         = useState(true)
   const [mostrarFormArea,    setMostrarFormArea]    = useState(false)
   const [mostrarFormMaquina, setMostrarFormMaquina] = useState(false)
-  const [error,         setError]         = useState('')
-  const [exito,         setExito]         = useState('')
+  const [error,            setError]            = useState('')
+  const [exito,            setExito]            = useState('')
 
+  // Estados para crear
   const [nuevaArea,    setNuevaArea]    = useState({ nombre: '', descripcion: '' })
   const [nuevaMaquina, setNuevaMaquina] = useState({ nombre: '', descripcion: '' })
+
+  // Estados para editar máquina
+  const [maquinaEditandoId, setMaquinaEditandoId] = useState(null)
+  const [maquinaEditNombre, setMaquinaEditNombre] = useState('')
+  const [maquinaEditDesc,   setMaquinaEditDesc]   = useState('')
 
   useEffect(() => { cargarAreas() }, [])
 
@@ -67,6 +73,23 @@ export default function Areas() {
     }
   }
 
+  const manejarEditarMaquina = async (e) => {
+    e.preventDefault()
+    setError('')
+    setExito('')
+    try {
+      await areasServicio.editarMaquina(maquinaEditandoId, {
+        nombre:      maquinaEditNombre,
+        descripcion: maquinaEditDesc,
+      })
+      setExito('Máquina actualizada correctamente.')
+      setMaquinaEditandoId(null)
+      cargarMaquinas(areaSeleccionada)
+    } catch (err) {
+      setError('Error al actualizar la máquina.')
+    }
+  }
+
   if (cargando) return <div style={estilos.cargando}>Cargando...</div>
 
   return (
@@ -100,7 +123,9 @@ export default function Areas() {
               <label style={estilos.etiqueta}>Nombre del área</label>
               <input
                 value={nuevaArea.nombre}
-                onChange={(e) => setNuevaArea({ ...nuevaArea, nombre: e.target.value })}
+                onChange={e => setNuevaArea({
+                  ...nuevaArea, nombre: e.target.value
+                })}
                 required
                 style={estilos.input}
               />
@@ -109,7 +134,9 @@ export default function Areas() {
               <label style={estilos.etiqueta}>Descripción</label>
               <input
                 value={nuevaArea.descripcion}
-                onChange={(e) => setNuevaArea({ ...nuevaArea, descripcion: e.target.value })}
+                onChange={e => setNuevaArea({
+                  ...nuevaArea, descripcion: e.target.value
+                })}
                 style={estilos.input}
               />
             </div>
@@ -136,10 +163,15 @@ export default function Areas() {
                 key={area.id}
                 style={{
                   ...estilos.areaItem,
-                  borderColor: areaSeleccionada === area.id ? '#1B3A5C' : '#E2E8F0',
-                  backgroundColor: areaSeleccionada === area.id ? '#EBF8FF' : '#fff',
+                  borderColor: areaSeleccionada === area.id
+                    ? '#1B3A5C' : '#E2E8F0',
+                  backgroundColor: areaSeleccionada === area.id
+                    ? '#EBF8FF' : '#fff',
                 }}
-                onClick={() => cargarMaquinas(area.id)}
+                onClick={() => {
+                  setMaquinaEditandoId(null)
+                  cargarMaquinas(area.id)
+                }}
               >
                 <span style={estilos.areaNombre}>🏭 {area.nombre}</span>
                 {area.descripcion && (
@@ -155,32 +187,45 @@ export default function Areas() {
           <div style={estilos.maquinasEncabezado}>
             <h3 style={estilos.columnaTitulo}>
               {areaSeleccionada
-                ? `Máquinas — ${areas.find(a => a.id === areaSeleccionada)?.nombre}`
+                ? `Máquinas — ${areas.find(
+                    a => a.id === areaSeleccionada
+                  )?.nombre}`
                 : 'Selecciona un área'}
             </h3>
             {areaSeleccionada && (
               <button
                 style={estilos.btnNuevoSm}
-                onClick={() => setMostrarFormMaquina(!mostrarFormMaquina)}
+                onClick={() => {
+                  setMostrarFormMaquina(!mostrarFormMaquina)
+                  setMaquinaEditandoId(null)
+                }}
               >
                 {mostrarFormMaquina ? '✕' : '+ Máquina'}
               </button>
             )}
           </div>
 
+          {/* Formulario nueva máquina */}
           {mostrarFormMaquina && (
-            <form onSubmit={manejarCrearMaquina} style={estilos.formMaquina}>
+            <form
+              onSubmit={manejarCrearMaquina}
+              style={estilos.formMaquina}
+            >
               <input
                 placeholder="Nombre de la máquina"
                 value={nuevaMaquina.nombre}
-                onChange={(e) => setNuevaMaquina({ ...nuevaMaquina, nombre: e.target.value })}
+                onChange={e => setNuevaMaquina({
+                  ...nuevaMaquina, nombre: e.target.value
+                })}
                 required
                 style={estilos.input}
               />
               <input
                 placeholder="Descripción (opcional)"
                 value={nuevaMaquina.descripcion}
-                onChange={(e) => setNuevaMaquina({ ...nuevaMaquina, descripcion: e.target.value })}
+                onChange={e => setNuevaMaquina({
+                  ...nuevaMaquina, descripcion: e.target.value
+                })}
                 style={estilos.input}
               />
               <button type="submit" style={estilos.btnGuardar}>
@@ -189,6 +234,7 @@ export default function Areas() {
             </form>
           )}
 
+          {/* Lista de máquinas */}
           {!areaSeleccionada ? (
             <p style={estilos.sinDatos}>
               Haz clic en un área para ver sus máquinas
@@ -200,9 +246,66 @@ export default function Areas() {
           ) : (
             maquinas.map(m => (
               <div key={m.id} style={estilos.maquinaItem}>
-                <span>⚙️ {m.nombre}</span>
-                {m.descripcion && (
-                  <span style={estilos.areaDesc}>{m.descripcion}</span>
+                {maquinaEditandoId === m.id ? (
+
+                  // ── Formulario edición inline ──
+                  <form
+                    onSubmit={manejarEditarMaquina}
+                    style={estilos.formEdicion}
+                  >
+                    <input
+                      value={maquinaEditNombre}
+                      onChange={e => setMaquinaEditNombre(e.target.value)}
+                      placeholder="Nombre de la máquina"
+                      required
+                      style={estilos.input}
+                    />
+                    <input
+                      value={maquinaEditDesc}
+                      onChange={e => setMaquinaEditDesc(e.target.value)}
+                      placeholder="Descripción (opcional)"
+                      style={estilos.input}
+                    />
+                    <div style={estilos.formEdicionBotones}>
+                      <button
+                        type="button"
+                        onClick={() => setMaquinaEditandoId(null)}
+                        style={estilos.btnSecundario}
+                      >
+                        Cancelar
+                      </button>
+                      <button type="submit" style={estilos.btnGuardar}>
+                        Guardar
+                      </button>
+                    </div>
+                  </form>
+
+                ) : (
+
+                  // ── Vista normal ──
+                  <div style={estilos.maquinaContenido}>
+                    <div style={estilos.maquinaInfo}>
+                      <span style={estilos.maquinaNombre}>
+                        ⚙️ {m.nombre}
+                      </span>
+                      {m.descripcion && (
+                        <span style={estilos.areaDesc}>
+                          {m.descripcion}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      style={estilos.btnEditar}
+                      onClick={() => {
+                        setMaquinaEditandoId(m.id)
+                        setMaquinaEditNombre(m.nombre)
+                        setMaquinaEditDesc(m.descripcion || '')
+                        setMostrarFormMaquina(false)
+                      }}
+                    >
+                      ✏️ Editar
+                    </button>
+                  </div>
                 )}
               </div>
             ))
@@ -236,7 +339,14 @@ const estilos = {
   areaItem:             { border: '2px solid', borderRadius: '8px', padding: '12px 16px', marginBottom: '8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', transition: 'all 0.2s' },
   areaNombre:           { fontSize: '14px', fontWeight: '600', color: '#2D3748' },
   areaDesc:             { fontSize: '12px', color: '#9CA3AF' },
-  maquinaItem:          { border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px 16px', marginBottom: '8px', display: 'flex', flexDirection: 'column', gap: '4px' },
+  maquinaItem:          { border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px 16px', marginBottom: '8px' },
+  maquinaContenido:     { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
+  maquinaInfo:          { display: 'flex', flexDirection: 'column', gap: '4px' },
+  maquinaNombre:        { fontSize: '14px', fontWeight: '500', color: '#2D3748' },
   formMaquina:          { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', padding: '12px', backgroundColor: '#F7FAFC', borderRadius: '8px' },
+  formEdicion:          { display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' },
+  formEdicionBotones:   { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' },
+  btnEditar:            { backgroundColor: '#EBF8FF', color: '#2B6CB0', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '12px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' },
+  btnSecundario:        { backgroundColor: '#E2E8F0', color: '#4A5568', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' },
   sinDatos:             { textAlign: 'center', color: '#9CA3AF', fontSize: '14px', padding: '20px 0' },
 }

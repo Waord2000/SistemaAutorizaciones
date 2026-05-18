@@ -91,6 +91,23 @@ namespace SistemaAutorizaciones.API.Controllers
 
             return Ok(new { mensaje = "Máquina creada correctamente.", id = nuevaMaquina.Id });
         }
+
+        // PUT api/areas/maquinas/{id}
+        [HttpPut("maquinas/{id}")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> EditarMaquina(int id,
+            [FromBody] SolicitudMaquina solicitud)
+        {
+            var maquina = await _baseDatos.Maquinas.FindAsync(id);
+            if (maquina == null)
+                return NotFound(new { mensaje = "Máquina no encontrada." });
+
+            maquina.Nombre = solicitud.Nombre;
+            maquina.Descripcion = solicitud.Descripcion;
+            await _baseDatos.SaveChangesAsync();
+
+            return Ok(new { mensaje = "Máquina actualizada correctamente." });
+        }
     }
 
     public class SolicitudArea
