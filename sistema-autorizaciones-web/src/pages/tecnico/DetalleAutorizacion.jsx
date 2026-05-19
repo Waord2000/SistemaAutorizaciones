@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { autorizacionesServicio } from '../../services/api'
+import { autorizacionesServicio, notificacionesServicio } from '../../services/api'
 
 export default function DetalleTecnico() {
   const { id }    = useParams()
@@ -17,12 +17,16 @@ export default function DetalleTecnico() {
 
   const cargarAutorizacion = async () => {
     try {
-      const respuesta = await autorizacionesServicio.obtenerPorId(id)
-      setAutorizacion(respuesta.data)
+        const respuesta = await autorizacionesServicio.obtenerPorId(id)
+        setAutorizacion(respuesta.data)
+
+        // ← Marcar notificaciones de esta autorización como leídas
+        await notificacionesServicio.marcarTodasLeidas()
+
     } catch (err) {
-      setError('Error al cargar la autorización.')
+        setError('Error al cargar la autorización.')
     } finally {
-      setCargando(false)
+        setCargando(false)
     }
   }
 

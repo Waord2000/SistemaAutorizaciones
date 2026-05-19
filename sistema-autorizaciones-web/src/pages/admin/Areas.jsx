@@ -11,14 +11,18 @@ export default function Areas() {
   const [error,            setError]            = useState('')
   const [exito,            setExito]            = useState('')
 
-  // Estados para crear
+  // Estados crear
   const [nuevaArea,    setNuevaArea]    = useState({ nombre: '', descripcion: '' })
   const [nuevaMaquina, setNuevaMaquina] = useState({ nombre: '', descripcion: '' })
 
-  // Estados para editar máquina
+  // Estados editar máquina
   const [maquinaEditandoId, setMaquinaEditandoId] = useState(null)
   const [maquinaEditNombre, setMaquinaEditNombre] = useState('')
   const [maquinaEditDesc,   setMaquinaEditDesc]   = useState('')
+
+  // Estados confirmar eliminar
+  const [areaEliminandoId,    setAreaEliminandoId]    = useState(null)
+  const [maquinaEliminandoId, setMaquinaEliminandoId] = useState(null)
 
   useEffect(() => { cargarAreas() }, [])
 
@@ -90,6 +94,42 @@ export default function Areas() {
     }
   }
 
+  const manejarEliminarArea = async (id) => {
+    setError('')
+    setExito('')
+    try {
+      await areasServicio.eliminarArea(id)
+      setExito('Área eliminada correctamente.')
+      setAreaEliminandoId(null)
+      if (areaSeleccionada === id) {
+        setAreaSeleccionada(null)
+        setMaquinas([])
+      }
+      cargarAreas()
+    } catch (err) {
+      setError(
+        err.response?.data?.mensaje || 'Error al eliminar el área.'
+      )
+      setAreaEliminandoId(null)
+    }
+  }
+
+  const manejarEliminarMaquina = async (id) => {
+    setError('')
+    setExito('')
+    try {
+      await areasServicio.eliminarMaquina(id)
+      setExito('Máquina eliminada correctamente.')
+      setMaquinaEliminandoId(null)
+      cargarMaquinas(areaSeleccionada)
+    } catch (err) {
+      setError(
+        err.response?.data?.mensaje || 'Error al eliminar la máquina.'
+      )
+      setMaquinaEliminandoId(null)
+    }
+  }
+
   if (cargando) return <div style={estilos.cargando}>Cargando...</div>
 
   return (
@@ -152,7 +192,7 @@ export default function Areas() {
       {/* Layout dos columnas */}
       <div style={estilos.dosColumnas}>
 
-        {/* Lista de áreas */}
+        {/* ── Lista de áreas ── */}
         <div style={estilos.columna}>
           <h3 style={estilos.columnaTitulo}>Áreas registradas</h3>
           {areas.length === 0 ? (
@@ -168,21 +208,64 @@ export default function Areas() {
                   backgroundColor: areaSeleccionada === area.id
                     ? '#EBF8FF' : '#fff',
                 }}
-                onClick={() => {
-                  setMaquinaEditandoId(null)
-                  cargarMaquinas(area.id)
-                }}
               >
-                <span style={estilos.areaNombre}>🏭 {area.nombre}</span>
-                {area.descripcion && (
-                  <span style={estilos.areaDesc}>{area.descripcion}</span>
-                )}
+                {/* Info del área */}
+                <div
+                  style={estilos.areaContenido}
+                  onClick={() => {
+                    setMaquinaEditandoId(null)
+                    setAreaEliminandoId(null)
+                    cargarMaquinas(area.id)
+                  }}
+                >
+                  <span style={estilos.areaNombre}>
+                    🏭 {area.nombre}
+                  </span>
+                  {area.descripcion && (
+                    <span style={estilos.areaDesc}>
+                      {area.descripcion}
+                    </span>
+                  )}
+                </div>
+
+                {/* Acciones del área */}
+                <div style={estilos.areaAcciones}>
+                  {areaEliminandoId === area.id ? (
+                    <div style={estilos.confirmar}>
+                      <span style={estilos.confirmarTexto}>
+                        ¿Eliminar?
+                      </span>
+                      <button
+                        style={estilos.btnConfirmarSi}
+                        onClick={() => manejarEliminarArea(area.id)}
+                      >
+                        Sí
+                      </button>
+                      <button
+                        style={estilos.btnConfirmarNo}
+                        onClick={() => setAreaEliminandoId(null)}
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      style={estilos.btnEliminar}
+                      onClick={e => {
+                        e.stopPropagation()
+                        setAreaEliminandoId(area.id)
+                      }}
+                    >
+                      🗑️
+                    </button>
+                  )}
+                </div>
               </div>
             ))
           )}
         </div>
 
-        {/* Máquinas del área seleccionada */}
+        {/* ── Máquinas del área seleccionada ── */}
         <div style={estilos.columna}>
           <div style={estilos.maquinasEncabezado}>
             <h3 style={estilos.columnaTitulo}>
@@ -294,17 +377,52 @@ export default function Areas() {
                         </span>
                       )}
                     </div>
-                    <button
-                      style={estilos.btnEditar}
-                      onClick={() => {
-                        setMaquinaEditandoId(m.id)
-                        setMaquinaEditNombre(m.nombre)
-                        setMaquinaEditDesc(m.descripcion || '')
-                        setMostrarFormMaquina(false)
-                      }}
-                    >
-                      ✏️ Editar
-                    </button>
+
+                    {/* Acciones máquina */}
+                    <div style={estilos.maquinaAcciones}>
+                      <button
+                        style={estilos.btnEditar}
+                        onClick={() => {
+                          setMaquinaEditandoId(m.id)
+                          setMaquinaEditNombre(m.nombre)
+                          setMaquinaEditDesc(m.descripcion || '')
+                          setMostrarFormMaquina(false)
+                          setMaquinaEliminandoId(null)
+                        }}
+                      >
+                        ✏️
+                      </button>
+
+                      {maquinaEliminandoId === m.id ? (
+                        <div style={estilos.confirmar}>
+                          <span style={estilos.confirmarTexto}>
+                            ¿Eliminar?
+                          </span>
+                          <button
+                            style={estilos.btnConfirmarSi}
+                            onClick={() => manejarEliminarMaquina(m.id)}
+                          >
+                            Sí
+                          </button>
+                          <button
+                            style={estilos.btnConfirmarNo}
+                            onClick={() => setMaquinaEliminandoId(null)}
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          style={estilos.btnEliminar}
+                          onClick={() => {
+                            setMaquinaEliminandoId(m.id)
+                            setMaquinaEditandoId(null)
+                          }}
+                        >
+                          🗑️
+                        </button>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -326,7 +444,7 @@ const estilos = {
   error:                { backgroundColor: '#FEF2F2', border: '1px solid #FCA5A5', borderRadius: '8px', padding: '12px', color: '#B91C1C', marginBottom: '16px' },
   exito:                { backgroundColor: '#F0FDF4', border: '1px solid #86EFAC', borderRadius: '8px', padding: '12px', color: '#166534', marginBottom: '16px' },
   formularioContenedor: { backgroundColor: '#fff', borderRadius: '10px', padding: '24px', marginBottom: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
-  formularioTitulo:     { fontSize: '16px', fontWeight: '600', color: '#1B3A5C', marginBottom: '16px' },
+  formularioTitulo:     { fontSize: '16px', fontWeight: '600', color: '#1B3A5C', marginBottom: '16px', marginTop: 0 },
   formularioGrid:       { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' },
   campo:                { display: 'flex', flexDirection: 'column', gap: '6px' },
   etiqueta:             { fontSize: '13px', fontWeight: '600', color: '#374151' },
@@ -336,17 +454,25 @@ const estilos = {
   columna:              { backgroundColor: '#fff', borderRadius: '10px', padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
   columnaTitulo:        { fontSize: '15px', fontWeight: '600', color: '#1B3A5C', marginBottom: '16px', marginTop: 0 },
   maquinasEncabezado:   { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' },
-  areaItem:             { border: '2px solid', borderRadius: '8px', padding: '12px 16px', marginBottom: '8px', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '4px', transition: 'all 0.2s' },
+  areaItem:             { border: '2px solid', borderRadius: '8px', padding: '12px 16px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.2s' },
+  areaContenido:        { display: 'flex', flexDirection: 'column', gap: '4px', cursor: 'pointer', flex: 1 },
+  areaAcciones:         { display: 'flex', gap: '6px', alignItems: 'center', marginLeft: '8px' },
   areaNombre:           { fontSize: '14px', fontWeight: '600', color: '#2D3748' },
   areaDesc:             { fontSize: '12px', color: '#9CA3AF' },
   maquinaItem:          { border: '1px solid #E2E8F0', borderRadius: '8px', padding: '12px 16px', marginBottom: '8px' },
   maquinaContenido:     { display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' },
   maquinaInfo:          { display: 'flex', flexDirection: 'column', gap: '4px' },
   maquinaNombre:        { fontSize: '14px', fontWeight: '500', color: '#2D3748' },
+  maquinaAcciones:      { display: 'flex', gap: '6px', alignItems: 'center' },
   formMaquina:          { display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px', padding: '12px', backgroundColor: '#F7FAFC', borderRadius: '8px' },
   formEdicion:          { display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' },
   formEdicionBotones:   { display: 'flex', justifyContent: 'flex-end', gap: '8px', marginTop: '4px' },
-  btnEditar:            { backgroundColor: '#EBF8FF', color: '#2B6CB0', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '12px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' },
+  btnEditar:            { backgroundColor: '#EBF8FF', color: '#2B6CB0', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '14px', cursor: 'pointer' },
+  btnEliminar:          { backgroundColor: '#FEE2E2', color: '#991B1B', border: 'none', borderRadius: '6px', padding: '6px 10px', fontSize: '14px', cursor: 'pointer' },
   btnSecundario:        { backgroundColor: '#E2E8F0', color: '#4A5568', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer' },
+  confirmar:            { display: 'flex', alignItems: 'center', gap: '4px' },
+  confirmarTexto:       { fontSize: '12px', color: '#991B1B', fontWeight: '600' },
+  btnConfirmarSi:       { backgroundColor: '#DC2626', color: '#fff', border: 'none', borderRadius: '6px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer', fontWeight: '600' },
+  btnConfirmarNo:       { backgroundColor: '#E2E8F0', color: '#4A5568', border: 'none', borderRadius: '6px', padding: '4px 8px', fontSize: '12px', cursor: 'pointer' },
   sinDatos:             { textAlign: 'center', color: '#9CA3AF', fontSize: '14px', padding: '20px 0' },
 }

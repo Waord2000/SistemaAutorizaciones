@@ -61,7 +61,8 @@ namespace SistemaAutorizaciones.API.Controllers
                 User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
             var notificacion = await _baseDatos.Notificaciones
-                .FirstOrDefaultAsync(n => n.Id == id && n.UsuarioId == idUsuario);
+                .FirstOrDefaultAsync(n => n.Id == id
+                                       && n.UsuarioId == idUsuario);
 
             if (notificacion == null)
                 return NotFound(new { mensaje = "Notificación no encontrada." });

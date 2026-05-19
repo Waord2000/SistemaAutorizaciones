@@ -54,6 +54,8 @@ export const areasServicio = {
   crearArea:       (datos)    => api.post('/Areas', datos),
   crearMaquina:    (id, datos) => api.post(`/Areas/${id}/maquinas`, datos),
   editarMaquina:   (id, datos) => api.put(`/Areas/maquinas/${id}`, datos),
+  eliminarArea:    (id)         => api.delete(`/Areas/${id}`),         
+  eliminarMaquina: (id)         => api.delete(`/Areas/maquinas/${id}`),
 }
 
 // ── Servicios de Autorizaciones ───────────────────────────────

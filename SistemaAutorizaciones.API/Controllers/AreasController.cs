@@ -108,6 +108,74 @@ namespace SistemaAutorizaciones.API.Controllers
 
             return Ok(new { mensaje = "Máquina actualizada correctamente." });
         }
+
+        // DELETE api/areas/{id}
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> EliminarArea(int id)
+        {
+            var area = await _baseDatos.Areas.FindAsync(id);
+            if (area == null)
+                return NotFound(new { mensaje = "Área no encontrada." });
+
+            // Verificar que no tenga autorizaciones activas
+            bool tieneAutorizaciones = await _baseDatos.Autorizaciones
+                .AnyAsync(a => a.AreaId == id
+                            && a.Estado != EstadoAutorizacion.Completada
+                            && a.Estado != EstadoAutorizacion.Cancelada);
+
+            if (tieneAutorizaciones)
+                return BadRequest(new
+                {
+                    mensaje = "No se puede eliminar el área porque " +
+                              "tiene autorizaciones activas."
+                });
+
+            // Verificar que no tenga máquinas registradas
+            bool tieneMaquinas = await _baseDatos.Maquinas
+                .AnyAsync(m => m.AreaId == id);
+
+            if (tieneMaquinas)
+                return BadRequest(new
+                {
+                    mensaje = "No se puede eliminar el área porque " +
+                              "tiene máquinas registradas. " +
+                              "Elimina primero las máquinas."
+                });
+
+            _baseDatos.Areas.Remove(area);
+            await _baseDatos.SaveChangesAsync();
+
+            return Ok(new { mensaje = "Área eliminada correctamente." });
+        }
+
+        // DELETE api/areas/maquinas/{id}
+        [HttpDelete("maquinas/{id}")]
+        [Authorize(Roles = "Administrador")]
+        public async Task<IActionResult> EliminarMaquina(int id)
+        {
+            var maquina = await _baseDatos.Maquinas.FindAsync(id);
+            if (maquina == null)
+                return NotFound(new { mensaje = "Máquina no encontrada." });
+
+            // Verificar que no tenga autorizaciones activas
+            bool tieneAutorizaciones = await _baseDatos.Autorizaciones
+                .AnyAsync(a => a.MaquinaId == id
+                            && a.Estado != EstadoAutorizacion.Completada
+                            && a.Estado != EstadoAutorizacion.Cancelada);
+
+            if (tieneAutorizaciones)
+                return BadRequest(new
+                {
+                    mensaje = "No se puede eliminar la máquina porque " +
+                              "tiene autorizaciones activas."
+                });
+
+            _baseDatos.Maquinas.Remove(maquina);
+            await _baseDatos.SaveChangesAsync();
+
+            return Ok(new { mensaje = "Máquina eliminada correctamente." });
+        }
     }
 
     public class SolicitudArea
