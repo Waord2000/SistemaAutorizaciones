@@ -4,13 +4,12 @@ import { autorizacionesServicio, notificacionesServicio } from '../../services/a
 
 export default function DashboardTecnico() {
   const navegar              = useNavigate()
-  const [tareas,   setTareas]   = useState([])
-  const [cargando, setCargando] = useState(true)
-  const [cantidadSinLeer, setCantidadSinLeer] = useState(0)
+  const [tareas,         setTareas]         = useState([])
+  const [cargando,       setCargando]       = useState(true)
+  const [cantidadSinLeer,setCantidadSinLeer]= useState(0)
+  const [busqueda,       setBusqueda]       = useState('')
 
-  useEffect(() => {
-    cargarDatos()
-  }, [])
+  useEffect(() => { cargarDatos() }, [])
 
   const cargarDatos = async () => {
     try {
@@ -38,6 +37,18 @@ export default function DashboardTecnico() {
   const tareasAprobadas   = tareas.filter(t => t.estado === 'Aprobada')
   const tareasCompletadas = tareas.filter(t => t.estado === 'Completada')
 
+  // ── Filtrado por búsqueda ─────────────────────────────────
+  const tareasFiltradas = tareas.filter(t => {
+    if (!busqueda.trim()) return true
+    const texto = busqueda.toLowerCase()
+    return (
+      t.codigo?.toLowerCase().includes(texto)    ||
+      t.area?.toLowerCase().includes(texto)      ||
+      t.aprobador?.toLowerCase().includes(texto) ||
+      t.estado?.toLowerCase().includes(texto)
+    )
+  })
+
   if (cargando) return (
     <div style={estilos.cargando}>Cargando tus tareas...</div>
   )
@@ -62,10 +73,10 @@ export default function DashboardTecnico() {
       {/* Tarjetas resumen */}
       <div style={estilos.tarjetasGrid}>
         {[
-          { label: 'Total asignadas', valor: tareas.length,             color: '#1B3A5C' },
-          { label: 'Por confirmar',   valor: tareasPendientes.length,   color: '#D97706' },
-          { label: 'Confirmadas',     valor: tareasAprobadas.length,    color: '#059669' },
-          { label: 'Completadas',     valor: tareasCompletadas.length,  color: '#16A34A' },
+          { label: 'Total asignadas', valor: tareas.length,            color: '#1B3A5C' },
+          { label: 'Por confirmar',   valor: tareasPendientes.length,  color: '#D97706' },
+          { label: 'Confirmadas',     valor: tareasAprobadas.length,   color: '#059669' },
+          { label: 'Completadas',     valor: tareasCompletadas.length, color: '#16A34A' },
         ].map(item => (
           <div key={item.label} style={estilos.tarjeta}>
             <span style={{ ...estilos.tarjetaNumero, color: item.color }}>
@@ -76,13 +87,32 @@ export default function DashboardTecnico() {
         ))}
       </div>
 
-      {/* Alerta tareas pendientes de confirmar */}
+      {/* Alerta tareas pendientes */}
       {tareasPendientes.length > 0 && (
         <div style={estilos.alertaPendiente}>
           ⚠️ Tienes <strong>{tareasPendientes.length}</strong> tarea(s)
           pendiente(s) de confirmación. Por favor revísalas y acepta.
         </div>
       )}
+
+      {/* Barra de búsqueda */}
+      <div style={estilos.barraBusqueda}>
+        <input
+          type="text"
+          value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="🔍 Buscar por código, área, aprobador o estado..."
+          style={estilos.inputBusqueda}
+        />
+        {busqueda && (
+          <button
+            onClick={() => setBusqueda('')}
+            style={estilos.btnLimpiar}
+          >
+            ✕ Limpiar
+          </button>
+        )}
+      </div>
 
       {/* Lista de tareas */}
       <div style={estilos.tablaContenedor}>
@@ -99,14 +129,17 @@ export default function DashboardTecnico() {
             </tr>
           </thead>
           <tbody>
-            {tareas.length === 0 ? (
+            {tareasFiltradas.length === 0 ? (
               <tr>
                 <td colSpan={7} style={estilos.sinDatos}>
-                  No tienes tareas asignadas actualmente.
+                  {busqueda
+                    ? `No se encontraron resultados para "${busqueda}"`
+                    : 'No tienes tareas asignadas actualmente.'
+                  }
                 </td>
               </tr>
             ) : (
-              tareas.map(t => (
+              tareasFiltradas.map(t => (
                 <tr key={t.id} style={{
                   ...estilos.fila,
                   backgroundColor: t.estado === 'Pendiente'
@@ -173,6 +206,9 @@ const estilos = {
   tarjeta:         { backgroundColor: '#fff', borderRadius: '10px', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
   tarjetaNumero:   { fontSize: '32px', fontWeight: 'bold' },
   tarjetaLabel:    { fontSize: '13px', color: '#6B7280', marginTop: '4px', textAlign: 'center' },
+  barraBusqueda:   { display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' },
+  inputBusqueda:   { flex: 1, padding: '10px 16px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+  btnLimpiar:      { backgroundColor: '#FEE2E2', color: '#991B1B', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' },
   tablaContenedor: { backgroundColor: '#fff', borderRadius: '10px', overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
   tabla:           { width: '100%', borderCollapse: 'collapse' },
   encabezadoTabla: { backgroundColor: '#F7FAFC' },

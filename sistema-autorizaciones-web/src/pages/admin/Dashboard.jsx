@@ -7,6 +7,7 @@ export default function DashboardAdmin() {
   const [autorizaciones, setAutorizaciones] = useState([])
   const [cargando,       setCargando]       = useState(true)
   const [filtroEstado,   setFiltroEstado]   = useState('Todos')
+  const [busqueda, setBusqueda] = useState('')
 
   useEffect(() => {
     cargarAutorizaciones()
@@ -35,9 +36,19 @@ export default function DashboardAdmin() {
   const contarPorEstado = (estado) =>
     autorizaciones.filter(a => a.estado === estado).length
 
-  const autorizacionesFiltradas = filtroEstado === 'Todos'
-    ? autorizaciones
-    : autorizaciones.filter(a => a.estado === filtroEstado)
+  const autorizacionesFiltradas = autorizaciones
+    .filter(a => filtroEstado === 'Todos' || a.estado === filtroEstado)
+    .filter(a => {
+        if (!busqueda.trim()) return true
+        const texto = busqueda.toLowerCase()
+        return (
+            a.codigo?.toLowerCase().includes(texto)    ||
+            a.area?.toLowerCase().includes(texto)      ||
+            a.aprobador?.toLowerCase().includes(texto) ||
+            a.tecnico?.toLowerCase().includes(texto)   ||
+            a.estado?.toLowerCase().includes(texto)
+        )
+    })
 
   if (cargando) return <div style={estilos.cargando}>Cargando...</div>
 
@@ -69,7 +80,6 @@ export default function DashboardAdmin() {
           </div>
         ))}
       </div>
-
       {/* Accesos rápidos */}
       <div style={estilos.accesosGrid}>
         <button
@@ -103,6 +113,25 @@ export default function DashboardAdmin() {
             {estado}
           </button>
         ))}
+      </div>
+
+      {/* Barra de búsqueda */}
+      <div style={estilos.barraBusqueda}>
+        <input
+          type="text"
+            value={busqueda}
+          onChange={e => setBusqueda(e.target.value)}
+          placeholder="🔍 Buscar por código, área, aprobador, técnico..."
+          style={estilos.inputBusqueda}
+        />
+          {busqueda && (
+            <button
+              onClick={() => setBusqueda('')}
+              style={estilos.btnLimpiar}
+            >
+              ✕ Limpiar
+            </button>
+          )}
       </div>
 
       {/* Tabla de autorizaciones */}
@@ -184,4 +213,10 @@ const estilos = {
   badge:            { padding: '4px 10px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' },
   btnVer:           { backgroundColor: '#EBF8FF', color: '#2B6CB0', border: 'none', borderRadius: '6px', padding: '6px 12px', fontSize: '13px', cursor: 'pointer', fontWeight: '600' },
   sinDatos:         { textAlign: 'center', padding: '40px', color: '#9CA3AF' },
+  barraBusqueda:  { display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' },
+  inputBusqueda:  { flex: 1, padding: '10px 16px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+  btnLimpiar:     { backgroundColor: '#FEE2E2', color: '#991B1B', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' },
+  barraBusqueda: { display: 'flex', gap: '12px', marginBottom: '16px', alignItems: 'center' },
+inputBusqueda: { flex: 1, padding: '10px 16px', borderRadius: '8px', border: '1px solid #D1D5DB', fontSize: '14px', outline: 'none', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' },
+btnLimpiar:    { backgroundColor: '#FEE2E2', color: '#991B1B', border: 'none', borderRadius: '8px', padding: '10px 16px', fontSize: '13px', cursor: 'pointer', fontWeight: '600', whiteSpace: 'nowrap' },
 }

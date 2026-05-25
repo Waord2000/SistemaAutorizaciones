@@ -6,6 +6,7 @@ export default function Areas() {
   const [maquinas,         setMaquinas]         = useState([])
   const [areaSeleccionada, setAreaSeleccionada] = useState(null)
   const [cargando,         setCargando]         = useState(true)
+  const [busqueda,         setBusqueda] = useState('')
   const [mostrarFormArea,    setMostrarFormArea]    = useState(false)
   const [mostrarFormMaquina, setMostrarFormMaquina] = useState(false)
   const [error,            setError]            = useState('')
